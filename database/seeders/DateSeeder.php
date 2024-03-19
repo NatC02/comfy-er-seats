@@ -12,9 +12,9 @@ class DateSeeder extends Seeder
      */
     public function run(): void
     {
-        // get dates from now to a week later
+        // get dates from now to 2 weeks later
         $startDate = now();
-        $endDate = $startDate->copy()->addWeeks();
+        $endDate = $startDate->copy()->addWeeks(2);
 
         while ($startDate->lte($endDate)) {
             $currentDate = $startDate->copy()->format('Y-m-d');
