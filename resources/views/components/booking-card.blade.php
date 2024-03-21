@@ -1,3 +1,5 @@
+@props(['booking', 'currentDate', 'currentTime'])
+
 <div
     class="flex flex-col md:flex-row items-center justify-center bg-white border border-gray-200 rounded-lg shadow-lg w-full p-5 mb-3 max-w-screen-lg mx-auto dark:border-gray-700 dark:bg-gray-800">
     <div class="flex-shrink-0 mb-4 md:mb-0 md:mr-6">
@@ -58,8 +60,19 @@
                 </div>
             @endif
         </div>
-        <div class="flex justify-center mt-4 md:justify-end">
-            @if ($booking->status->value == 'paid')
+
+        {{-- show cancel button if booking is not cancelled and date and showtime is not passed --}}
+        @php
+            // date formatting
+            $formattedDate = $booking->dateShowtime->date->date->format('Y-m-d');
+            $isToday = $formattedDate == $currentDate;
+            $isPastDate = $formattedDate < $currentDate;
+            $isPastShowtime = $booking->dateShowtime->showtime->start_time < $currentTime;
+            $isCancelled = $isPastDate || ($isPastShowtime && $isToday) || $booking->status->value == 'cancelled';
+        @endphp
+
+        @if (!$isCancelled)
+            <div class="flex justify-center mt-4 md:justify-end">
                 <form action="{{ route('bookings.update', $booking) }}" method="POST">
                     @csrf
                     @method('PATCH')
@@ -68,7 +81,7 @@
                         Cancel Booking
                     </button>
                 </form>
-            @endif
-        </div>
+            </div>
+        @endif
     </div>
 </div>

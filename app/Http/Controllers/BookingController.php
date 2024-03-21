@@ -27,9 +27,26 @@ class BookingController extends Controller
     public function create(Movie $movie, Date $date, Showtime $showtime): View|RedirectResponse
     {
         $user = User::find(auth()->id());
+
+        // check if the user is old enough to watch the movie
         if ($user->age < $movie->age_rating) {
             return back()
-                ->with('error', 'You are not old enough to watch this movie.');
+                ->with('error', 'You are not old enough to watch this movie!');
+        }
+
+        $currentDate = today('Asia/Jakarta')->format('Y-m-d');
+        $currentTime = now('Asia/Jakarta')->format('H:i:s');
+
+        // date formatting
+        $formattedDate = $date->date->format('Y-m-d');
+        $isToday = $formattedDate == $currentDate;
+        $isPastDate = $formattedDate < $currentDate;
+        $isPastShowtime = $showtime->start_time < $currentTime;
+
+        // check if the date and showtime is in the past of the current date and time
+        if ($isPastDate || ($isToday && $isPastShowtime)) {
+            return back()
+                ->with('error', 'Cannot book tickets for past dates and showtimes!');
         }
 
         $seats = Seat::all();
@@ -46,7 +63,7 @@ class BookingController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'seats' => ['required', 'array', 'min:1', 'exists:seats,id'],
+            'seats' => ['required', 'array', 'min:1', 'max:6', 'exists:seats,id'],
         ]);
 
         $user = User::find(auth()->id());
@@ -65,6 +82,7 @@ class BookingController extends Controller
         $booking->total_price = count($request->seats) * $movie->ticket_price;
         $booking->status = BookingStatus::PAID;
 
+        // check if the user has enough balance to book the tickets
         if ($user->balance < $booking->total_price) {
             return back()
                 ->with('error', 'You do not have enough balance to book these tickets!');
@@ -97,7 +115,10 @@ class BookingController extends Controller
             ->latest()
             ->paginate(5);
 
-        return view('bookings.index', compact('bookings'));
+        $currentDate = today('Asia/Jakarta')->format('Y-m-d');
+        $currentTime = now('Asia/Jakarta')->format('H:i:s');
+
+        return view('bookings.index', compact('bookings', 'currentDate', 'currentTime'));
     }
 
     /**
